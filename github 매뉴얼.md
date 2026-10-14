@@ -34,8 +34,8 @@ feature/*
 예시
 
 ```text
-feature/telegram-collector
-feature/darkweb-collector
+feature/기능1
+feature/기능2
 feature/dashboard-ui
 feature/threat-analyzer
 ```
