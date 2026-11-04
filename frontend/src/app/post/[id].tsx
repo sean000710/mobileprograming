@@ -1,1 +1,1 @@
-export { default } from '@/features/post/screens/PostDetailScreen';
+export { default } from '@/features/posts/screens/PostDetailScreen';

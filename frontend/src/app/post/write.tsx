@@ -1,1 +1,1 @@
-export { default } from '@/features/write/screens/WritePostScreen';
+export { default } from '@/features/posts/screens/WritePostScreen';
