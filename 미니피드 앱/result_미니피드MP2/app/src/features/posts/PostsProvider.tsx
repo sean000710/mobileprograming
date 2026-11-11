@@ -1,14 +1,7 @@
-import { createContext, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, PropsWithChildren, useCallback, useContext, useMemo, useState } from 'react';
 
-import { isSupabaseConfigured, supabase } from '@/shared/lib/supabase';
+import { minutesAgo } from '@/shared/lib/time';
 import type { Post } from './types';
-
-type PostRow = {
-  id: string;
-  author_id: string;
-  content: string;
-  created_at: string;
-};
 
 type PostsContextValue = {
   posts: Post[];
@@ -23,138 +16,63 @@ type PostsContextValue = {
 
 const PostsContext = createContext<PostsContextValue | null>(null);
 
-function toPost(row: PostRow): Post {
-  return {
-    id: row.id,
-    authorId: row.author_id,
-    nickname: `익명 ${row.author_id.slice(0, 4).toUpperCase()}`,
-    content: row.content,
-    createdAt: row.created_at,
-  };
-}
+// 서버 없이 앱 안에서만 쓰는 예시 데이터 (앱을 끄면 새 글은 사라짐)
+const LOCAL_AUTHOR_ID = 'local-user';
 
-function getErrorMessage(error: unknown, action: 'load' | 'write') {
-  if (error instanceof Error && error.message === 'SUPABASE_NOT_CONFIGURED') {
-    return 'Supabase 설정이 필요합니다. .env 파일의 URL과 Publishable Key를 확인해 주세요.';
-  }
-  return action === 'load'
-    ? '게시글을 불러오지 못했어요. 네트워크 연결을 확인한 뒤 다시 시도해 주세요.'
-    : '게시글을 저장하지 못했어요. 네트워크 연결을 확인한 뒤 다시 시도해 주세요.';
-}
+const SEED_POSTS: Post[] = [
+  {
+    id: 'seed-1',
+    authorId: 'seed-a',
+    nickname: '익명 AAAA',
+    content: '체육대회 언제 시작하나요?? 다들 몇 시까지 오는지 아시는 분?',
+    createdAt: minutesAgo(5),
+  },
+  {
+    id: 'seed-2',
+    authorId: 'seed-b',
+    nickname: '익명 BBBB',
+    content: '급식 오늘 진짜 맛있었다 ㅋㅋ\n돈까스 나온 날은 항상 줄이 길어요 ㅠㅠ',
+    createdAt: minutesAgo(32),
+  },
+  {
+    id: 'seed-3',
+    authorId: 'seed-c',
+    nickname: '익명 CCCC',
+    content: '동아리 신입 부원 모집합니다. 관심 있으신 분들 댓글 남겨주세요!',
+    createdAt: minutesAgo(120),
+  },
+];
 
 export function PostsProvider({ children }: PropsWithChildren) {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState<Post[]>(SEED_POSTS);
   const [refreshing, setRefreshing] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const userIdRef = useRef<string | null>(null);
-
-  const requireClient = useCallback(() => {
-    if (!isSupabaseConfigured || !supabase) throw new Error('SUPABASE_NOT_CONFIGURED');
-    return supabase;
-  }, []);
-
-  const ensureAnonymousSession = useCallback(async () => {
-    const client = requireClient();
-    const { data: sessionData, error: sessionError } = await client.auth.getSession();
-    if (sessionError) throw sessionError;
-
-    if (sessionData.session?.user.id) {
-      userIdRef.current = sessionData.session.user.id;
-      return sessionData.session.user.id;
-    }
-
-    const { data, error: signInError } = await client.auth.signInAnonymously();
-    if (signInError) throw signInError;
-    if (!data.user) throw new Error('익명 사용자 생성에 실패했습니다.');
-
-    userIdRef.current = data.user.id;
-    return data.user.id;
-  }, [requireClient]);
-
-  const fetchPosts = useCallback(async () => {
-    const client = requireClient();
-    if (!userIdRef.current) await ensureAnonymousSession();
-
-    const { data, error: queryError } = await client
-      .from('posts')
-      .select('id, author_id, content, created_at')
-      .order('created_at', { ascending: false });
-
-    if (queryError) throw queryError;
-    setPosts(((data ?? []) as PostRow[]).map(toPost));
-  }, [ensureAnonymousSession, requireClient]);
 
   const refreshPosts = useCallback(async () => {
     setRefreshing(true);
-    setError(null);
-    try {
-      await fetchPosts();
-    } catch (refreshError) {
-      setError(getErrorMessage(refreshError, 'load'));
-    } finally {
-      setRefreshing(false);
-    }
-  }, [fetchPosts]);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    setRefreshing(false);
+  }, []);
 
-  useEffect(() => {
-    let active = true;
+  const addPost = useCallback(async (content: string) => {
+    const trimmed = content.trim();
+    if (!trimmed) throw new Error('EMPTY_POST');
 
-    async function initialize() {
-      setLoading(true);
-      setError(null);
-      try {
-        await ensureAnonymousSession();
-        if (active) await fetchPosts();
-      } catch (initializeError) {
-        if (active) setError(getErrorMessage(initializeError, 'load'));
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    initialize();
-    return () => {
-      active = false;
+    const post: Post = {
+      id: `post-${Date.now()}`,
+      authorId: LOCAL_AUTHOR_ID,
+      nickname: '익명 나',
+      content: trimmed,
+      createdAt: new Date().toISOString(),
     };
-  }, [ensureAnonymousSession, fetchPosts]);
-
-  const addPost = useCallback(
-    async (content: string) => {
-      const trimmed = content.trim();
-      if (!trimmed) throw new Error('EMPTY_POST');
-
-      setSubmitting(true);
-      setError(null);
-      try {
-        const client = requireClient();
-        const authorId = userIdRef.current ?? (await ensureAnonymousSession());
-        const { data, error: insertError } = await client
-          .from('posts')
-          .insert({ author_id: authorId, content: trimmed })
-          .select('id, author_id, content, created_at')
-          .single();
-
-        if (insertError) throw insertError;
-        const post = toPost(data as PostRow);
-        setPosts((current) => [post, ...current.filter((item) => item.id !== post.id)]);
-        return post;
-      } catch (writeError) {
-        setError(getErrorMessage(writeError, 'write'));
-        throw writeError;
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [ensureAnonymousSession, requireClient],
-  );
+    setPosts((current) => [post, ...current]);
+    return post;
+  }, []);
 
   const getPost = useCallback((id: string) => posts.find((post) => post.id === id), [posts]);
 
   const value = useMemo(
-    () => ({ posts, loading, refreshing, submitting, error, addPost, refreshPosts, getPost }),
-    [posts, loading, refreshing, submitting, error, addPost, refreshPosts, getPost],
+    () => ({ posts, loading: false, refreshing, submitting: false, error: null, addPost, refreshPosts, getPost }),
+    [posts, refreshing, addPost, refreshPosts, getPost],
   );
 
   return <PostsContext.Provider value={value}>{children}</PostsContext.Provider>;
@@ -165,4 +83,3 @@ export function usePosts() {
   if (!context) throw new Error('usePosts는 PostsProvider 안에서만 사용할 수 있습니다.');
   return context;
 }
-
