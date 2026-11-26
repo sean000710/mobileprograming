@@ -129,6 +129,12 @@ npx expo start -c
 - 기대 결과: 앱이 종료되지 않고 글쓰기 화면에 "게시글을 저장하지 못했어요. 네트워크 연결을 확인한 뒤 다시 시도해 주세요." 안내가 빨간 글씨로 표시된다
 - 스크린샷: 03_write_fail_offline.png
 
+### 서버 저장 확인
+
+- 조작: Supabase 콘솔의 **Table Editor → `posts`** 테이블을 연다
+- 기대 결과: 기기에서 작성한 시험 글(`from_emulator_A_5554` 등)이 `id`, `author_id`, `content`, `created_at` 컬럼과 함께 저장되어 있다
+- 스크린샷: 04_supabase_posts.png
+
 ### 설정 키 분리
 
 - 조작: `app/src/shared/lib/supabase.ts`와 `.env.example`을 확인한다

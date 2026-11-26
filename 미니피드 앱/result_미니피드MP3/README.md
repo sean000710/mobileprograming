@@ -4,7 +4,7 @@
 
 - 프레임워크: Expo SDK 58 (`expo` 58.0.23) · React Native 0.88.1 · TypeScript 6.0.3
 - 백엔드: Supabase (`@supabase/supabase-js` 2.119.0)
-- 실행 기기: Android 에뮬레이터 `Medium_Phone_API_36.1` 2대
+- 실행 기기: Android 에뮬레이터 `Pixel_9` (Android API 37) 2대, Expo Go 58.0.6
 
 ## 기능 목록
 
@@ -66,24 +66,24 @@ EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 npx expo start
 ```
 
-Android 에뮬레이터 `Medium_Phone_API_36.1` 2대를 띄우고 각각 `a` 키로 앱을 엽니다.
+같은 AVD(`Pixel_9`)를 `-read-only` 옵션으로 2대 띄우고(`emulator -avd Pixel_9 -read-only -port 5554`, `... -port 5556`) 각각 앱을 엽니다.
 
 ## 확인 방법
 
 ### 좋아요 토글·중복 방지·기기 간 동기화
 - 조작: 기기 A에서 글 카드의 하트를 누르고, 같은 하트를 한 번 더 눌러 취소한 뒤 다시 누릅니다. 기기 B에서 피드를 당겨서 새로고침합니다.
 - 기대 결과: 기기 A의 하트가 빨갛게 채워지고 숫자가 1 증가, 다시 누르면 원래대로 돌아갑니다. 여러 번 눌러도 서버에는 한 건만 남아 숫자가 1을 넘지 않습니다. 기기 B의 같은 글에도 좋아요 1이 표시됩니다.
-- 스크린샷: `01_like_device_a.png`, `02_like_device_b.png`
+- 스크린샷: 01_like_device_a.png, 02_like_device_b.png, 03_like_sync_a_b.png
 
 ### 댓글 작성·목록
 - 조작: 기기 A에서 글 상세로 들어가 하단 입력창에 댓글을 쓰고 전송 버튼을 누릅니다. 기기 B에서 같은 글 상세를 엽니다.
 - 기대 결과: 기기 A의 댓글 목록 맨 아래에 방금 쓴 댓글이 `익명 XXXX` 닉네임으로 추가되고 댓글 수가 1 증가합니다. 기기 B에서도 같은 댓글이 보입니다. 댓글이 없으면 "첫 댓글을 남겨보세요"가 표시됩니다.
-- 스크린샷: `03_comment_device_a.png`, `04_comment_device_b.png`
+- 스크린샷: 04_comment_device_a.png, 05_comment_device_b.png, 06_comment_sync_a_b.png
 
 ### 신고 사유 서버 기록
 - 조작: 상세 화면 오른쪽 위 깃발 버튼을 눌러 신고 모달을 열고, 사유를 고르지 않은 상태와 고른 상태를 비교한 뒤 "기타"를 선택하고 설명을 적어 신고합니다. 이후 Supabase Table Editor에서 `post_reports`를 확인합니다.
 - 기대 결과: 사유를 고르기 전에는 "신고하기" 버튼이 비활성입니다. 신고하면 모달이 닫히고 "신고가 접수되었습니다" 안내가 뜹니다. 서버 `post_reports`에 `reason = other`, `detail`, `reporter_id`가 기록됩니다.
-- 스크린샷: `05_report_reason.png`, `06_report_done.png`, `07_report_server.png`
+- 스크린샷: 07_report_reason.png, 08_report_done.png, 09_report_server.png
 
 - 시험 데이터: 익명 사용자 2명(기기 A·B), 게시글 1건 이상, 좋아요 1건, 댓글 1건, 신고 1건
 - 네트워크: 정상 연결 상태에서 확인하고, 실패 안내는 비행기 모드로 전환해 확인합니다.
