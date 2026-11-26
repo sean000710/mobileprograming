@@ -8,6 +8,7 @@ export interface Post {
   likeCount: number; // 좋아요 수 (집계 값만 노출, 누가 눌렀는지는 앱에 표시하지 않음)
   commentCount: number; // 댓글 수
   likedByMe: boolean; // 내가 좋아요를 눌렀는지
+  likePending: boolean; // 내 좋아요 변경을 저장하는 중인지
 }
 
 // 댓글 한 개의 모양

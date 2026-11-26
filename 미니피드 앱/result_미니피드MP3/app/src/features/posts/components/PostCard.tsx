@@ -34,6 +34,7 @@ export function PostCard({ post, now, onPress, onToggleLike }: Props) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={post.likedByMe ? '좋아요 취소' : '좋아요'}
+          disabled={post.likePending}
           hitSlop={8}
           onPress={onToggleLike}
           style={styles.action}>

@@ -70,7 +70,7 @@ Supabase Dashboard에서 **Authentication → Sign In / Providers → Anonymous 
 
 ### 4. 환경변수 입력
 
-프로젝트 루트의 `.env.example`을 `app/.env`로 복사한 뒤 1단계에서 확인한 값을 입력합니다.
+`result_미니피드MP2/` 폴더에서 아래 명령을 실행한 뒤 `app/.env`에 1단계에서 확인한 값을 입력합니다. 제출용 `.env.example`은 `README.md` 옆에 두고 두 설정값을 비워 둡니다.
 
 ```bash
 cp .env.example app/.env
@@ -113,7 +113,7 @@ npx expo start -c
 
 ### 두 기기 동기화
 
-- 조작: Android 에뮬레이터 A(5554)와 B(5556)에서 같은 Expo 개발 서버의 앱을 연다. 기기 A에서 연필 버튼을 눌러 글을 작성하고 게시한 뒤, 기기 B의 피드를 아래로 당겨 새로고침한다
+- 조작: 온라인 상태에서 Android 에뮬레이터 A(5554)와 B(5556)로 같은 앱을 연다. 기기 A에서 연필 버튼을 눌러 `from_emulator_A_5554`를 입력하고 게시한 뒤, 기기 B의 피드를 아래로 당겨 새로고침한다
 - 기대 결과: 기기 A에서 작성한 글이 기기 B 새로고침 후 피드 맨 위에 표시된다
 - 스크린샷: 01_device_a_write.png, 02_device_b_sync.png
 
@@ -125,7 +125,7 @@ npx expo start -c
 
 ### 작성 실패 안내
 
-- 조작: 에뮬레이터의 Wi-Fi와 모바일 데이터를 끄고(비행기 모드와 동일) 글쓰기 화면에서 내용을 입력해 게시를 누른다
+- 조작: 에뮬레이터의 Wi-Fi와 모바일 데이터를 끄고(비행기 모드와 동일) 글쓰기 화면에 `offline test`를 입력해 게시를 누른다
 - 기대 결과: 앱이 종료되지 않고 글쓰기 화면에 "게시글을 저장하지 못했어요. 네트워크 연결을 확인한 뒤 다시 시도해 주세요." 안내가 빨간 글씨로 표시된다
 - 스크린샷: 03_write_fail_offline.png
 
@@ -139,7 +139,6 @@ npx expo start -c
 
 - 조작: `app/src/shared/lib/supabase.ts`와 `.env.example`을 확인한다
 - 기대 결과: URL과 Publishable Key는 `process.env.EXPO_PUBLIC_*`로만 읽고, 소스에 키가 하드코딩되어 있지 않으며 `.env.example`에는 빈 값만 있다
-- 스크린샷: (해당 없음 - 코드 확인)
 
 시험 데이터: Supabase `posts` 테이블 (`supabase/schema.sql`로 생성). 시험 글은 `from_emulator_A_5554`, `offline test` 등 개인정보 없는 문구만 사용
 
@@ -170,7 +169,7 @@ app/
 └─ src/features/posts/screens/WritePostScreen.tsx 작성·중복 방지·실패 안내
 supabase/
 └─ schema.sql                                 posts 테이블·인덱스·RLS
-screenshots/                                    확인 방법에 쓰인 스크린샷(01_~03_)
+screenshots/                                    기기 A·B 피드, 작성 실패, 서버 저장 화면
 .env.example                                    설정 키 이름만 있는 예시 파일
 ```
 
@@ -178,10 +177,11 @@ screenshots/                                    확인 방법에 쓰인 스크�
 
 - [ ] 실제 `app/.env`와 `.git` 폴더 제외
 - [ ] `node_modules`, `.expo`, `dist`, `build` 제외
-- [x] 기기 A 작성 화면 포함 (`01_device_a_write.png`)
+- [ ] 기기 A에서 시험 글을 입력한 화면을 게시 직전에 캡처하고 ‘두 기기 동기화’에 파일명 추가
+- [x] 기기 A 게시 직후 피드 포함 (`01_device_a_write.png`)
 - [x] 기기 B 동기화 화면 포함 (`02_device_b_sync.png`)
 - [x] 작성 실패 안내 화면 포함 (`03_write_fail_offline.png`)
-- [ ] (선택) Supabase 콘솔 데이터 화면 추가 시 `04_supabase_posts.png`로 저장하고 위 확인 방법에 적기
+- [x] Supabase 콘솔에서 같은 시험 글이 저장된 화면 포함 (`04_supabase_posts.png`)
 - [ ] 익명 인증 외 로그인 코드 없음
 - [ ] `package-lock.json` 포함, `android/`·`ios/` 폴더는 없어도 됨
 - [ ] 스크린샷에 실명·연락처 등 개인정보 없음
