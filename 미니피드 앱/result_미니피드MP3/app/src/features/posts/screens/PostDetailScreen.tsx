@@ -1,6 +1,6 @@
 // 게시글 상세: 본문 + 좋아요/댓글 수 + 댓글 목록 + 댓글 입력창 + 신고 모달
 import { useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -33,13 +33,16 @@ const REPORT_REASONS: { value: ReportReason; label: string }[] = [
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  return <PostDetail key={id} id={id} />;
+}
+
+function PostDetail({ id }: { id: string }) {
   const insets = useSafeAreaInsets();
   const { getPost, refreshPost, fetchComments, addComment, toggleLike, reportPost, error } = usePosts();
   const now = useNow();
   const post = getPost(id);
 
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [comments, setComments] = useState<Comment[] | null>(null);
   const [commentText, setCommentText] = useState('');
   const [sending, setSending] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
@@ -52,25 +55,25 @@ export default function PostDetailScreen() {
   const [reportDone, setReportDone] = useState(false);
 
   // 진입할 때마다 서버에서 최신 게시글 + 댓글을 다시 읽어요.
-  const loadComments = useCallback(async () => {
-    setCommentsLoading(true);
-    try {
-      setComments(await fetchComments(id));
-    } catch {
-      setCommentError('댓글을 불러오지 못했어요. 네트워크 연결을 확인한 뒤 다시 시도해 주세요.');
-    } finally {
-      setCommentsLoading(false);
-    }
-  }, [fetchComments, id]);
-
   useEffect(() => {
+    let active = true;
     refreshPost(id).catch(() => {
       // 목록에 이미 있는 값으로 계속 보여줘요.
     });
-    loadComments();
-  }, [id, loadComments, refreshPost]);
+    fetchComments(id).then((items) => {
+      if (active) setComments(items);
+    }).catch(() => {
+      if (active) {
+        setComments([]);
+        setCommentError('댓글을 불러오지 못했어요. 네트워크 연결을 확인한 뒤 다시 시도해 주세요.');
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [id, fetchComments, refreshPost]);
 
-  const canSend = commentText.trim().length > 0 && !sending;
+  const canSend = comments !== null && commentText.trim().length > 0 && !sending;
 
   const onSendComment = async () => {
     if (!canSend) return; // 빈 댓글은 보내지 않아요
@@ -78,7 +81,7 @@ export default function PostDetailScreen() {
     setCommentError(null);
     try {
       const created = await addComment(id, commentText);
-      setComments((current) => [...current, created]);
+      setComments((current) => [...(current ?? []), created]);
       setCommentText('');
     } catch {
       setCommentError('댓글을 저장하지 못했어요. 네트워크 연결을 확인한 뒤 다시 시도해 주세요.');
@@ -144,6 +147,7 @@ export default function PostDetailScreen() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={post.likedByMe ? '좋아요 취소' : '좋아요'}
+                disabled={post.likePending}
                 hitSlop={8}
                 onPress={() => toggleLike(post.id)}
                 style={styles.action}>
@@ -177,7 +181,7 @@ export default function PostDetailScreen() {
               댓글 {post.commentCount}
             </AppText>
 
-            {commentsLoading ? (
+            {comments === null ? (
               <View style={styles.commentsLoading}>
                 <ActivityIndicator color={colors.primary} />
               </View>

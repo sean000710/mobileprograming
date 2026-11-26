@@ -28,4 +28,40 @@ export const SEED_POSTS: Post[] = [
     content: '학교 축제 사진 공유해요 📸 인생네컷 찍은 사람 사진 좀 보내주세요',
     createdAt: minutesAgo(180),
   },
+  {
+    id: 'seed-5',
+    nickname: '책갈피',
+    content: '독서 모임에서 다음에 읽을 책을 고르는 중이에요. 짧은 추리 소설 어때요?',
+    createdAt: minutesAgo(240),
+  },
+  {
+    id: 'seed-6',
+    nickname: '분필고래',
+    content: '칠판 한쪽에 오늘의 수학 퀴즈를 적어 뒀어요. 힌트는 대칭입니다!',
+    createdAt: minutesAgo(300),
+  },
+  {
+    id: 'seed-7',
+    nickname: '셔틀콕',
+    content: '점심시간 배드민턴은 복식으로 하니까 기다리는 시간이 줄었어요.',
+    createdAt: minutesAgo(480),
+  },
+  {
+    id: 'seed-8',
+    nickname: '새싹관찰대',
+    content: '창가에 심어 둔 강낭콩에서 드디어 첫 잎이 나왔어요.',
+    createdAt: minutesAgo(1440),
+  },
+  {
+    id: 'seed-9',
+    nickname: '종이별',
+    content: '축제 부스에 걸 종이별을 접고 있어요. 노란색이랑 잘 어울리는 색 추천해 주세요!',
+    createdAt: minutesAgo(2880),
+  },
+  {
+    id: 'seed-10',
+    nickname: '리듬감자',
+    content: '합주 연습을 녹음해서 들어 보니 마지막 박자가 딱 맞았어요!',
+    createdAt: minutesAgo(4320),
+  },
 ];

@@ -60,7 +60,13 @@ function toPost(row: PostRow, myUserId: string | null): Post {
     likeCount: likes.length,
     commentCount: row.comments?.[0]?.count ?? 0,
     likedByMe: Boolean(myUserId) && likes.some((like) => like.user_id === myUserId),
+    likePending: false,
   };
+}
+
+function withLikeState(post: Post, likedByMe: boolean, likePending: boolean): Post {
+  const delta = Number(likedByMe) - Number(post.likedByMe);
+  return { ...post, likedByMe, likePending, likeCount: Math.max(0, post.likeCount + delta) };
 }
 
 function toComment(row: CommentRow): Comment {
@@ -100,6 +106,18 @@ export function PostsProvider({ children }: PropsWithChildren) {
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const userIdRef = useRef<string | null>(null);
+  const likeVersion = useRef(0);
+  const likeChanges = useRef(new Map<string, { liked: boolean; pending: boolean; version: number }>());
+
+  // 조회가 끝나기 전에 하트를 눌렀다면 다른 사용자의 집계와 내 최신 상태를 합쳐요.
+  const readPost = useCallback((row: PostRow, versionAtRead: number) => {
+    const post = toPost(row, userIdRef.current);
+    const change = likeChanges.current.get(post.id);
+    if (change && (change.pending || change.version > versionAtRead)) {
+      return withLikeState(post, change.liked, change.pending);
+    }
+    return post;
+  }, []);
 
   const requireClient = useCallback(() => {
     if (!isSupabaseConfigured || !supabase) throw new Error('SUPABASE_NOT_CONFIGURED');
@@ -130,14 +148,15 @@ export function PostsProvider({ children }: PropsWithChildren) {
     const client = requireClient();
     if (!userIdRef.current) await ensureAnonymousSession();
 
+    const versionAtRead = likeVersion.current;
     const { data, error: queryError } = await client
       .from('posts')
       .select(POST_SELECT)
       .order('created_at', { ascending: false });
 
     if (queryError) throw queryError;
-    setPosts(((data ?? []) as unknown as PostRow[]).map((row) => toPost(row, userIdRef.current)));
-  }, [ensureAnonymousSession, requireClient]);
+    setPosts(((data ?? []) as unknown as PostRow[]).map((row) => readPost(row, versionAtRead)));
+  }, [ensureAnonymousSession, readPost, requireClient]);
 
   const refreshPosts = useCallback(async () => {
     setRefreshing(true);
@@ -210,29 +229,21 @@ export function PostsProvider({ children }: PropsWithChildren) {
   // 좋아요 토글: 화면을 먼저 바꾸고(낙관적 업데이트) 서버에 저장해요. 실패하면 되돌립니다.
   const toggleLike = useCallback(
     async (postId: string) => {
-      const client = requireClient();
-      const myUserId = userIdRef.current ?? (await ensureAnonymousSession());
       const target = posts.find((post) => post.id === postId);
-      if (!target) return;
+      if (!target || target.likePending || likeChanges.current.get(postId)?.pending) return;
 
       const nextLiked = !target.likedByMe;
-      const applyLike = (liked: boolean) =>
-        setPosts((current) =>
-          current.map((post) =>
-            post.id === postId
-              ? {
-                  ...post,
-                  likedByMe: liked,
-                  likeCount: Math.max(0, post.likeCount + (liked ? 1 : -1)),
-                }
-              : post,
-          ),
-        );
+      const applyLike = (liked: boolean, pending: boolean) => {
+        likeChanges.current.set(postId, { liked, pending, version: ++likeVersion.current });
+        setPosts((current) => current.map((post) => post.id === postId ? withLikeState(post, liked, pending) : post));
+      };
 
       setError(null);
-      applyLike(nextLiked);
+      applyLike(nextLiked, true);
 
       try {
+        const client = requireClient();
+        const myUserId = userIdRef.current ?? (await ensureAnonymousSession());
         if (nextLiked) {
           const { error: insertError } = await client
             .from('post_likes')
@@ -247,8 +258,9 @@ export function PostsProvider({ children }: PropsWithChildren) {
             .eq('user_id', myUserId);
           if (deleteError) throw deleteError;
         }
+        applyLike(nextLiked, false);
       } catch (likeError) {
-        applyLike(target.likedByMe); // 원상복구
+        applyLike(target.likedByMe, false);
         setError(getErrorMessage(likeError, 'like'));
       }
     },
@@ -329,6 +341,7 @@ export function PostsProvider({ children }: PropsWithChildren) {
       const client = requireClient();
       if (!userIdRef.current) await ensureAnonymousSession();
 
+      const versionAtRead = likeVersion.current;
       const { data, error: queryError } = await client
         .from('posts')
         .select(POST_SELECT)
@@ -338,14 +351,14 @@ export function PostsProvider({ children }: PropsWithChildren) {
       if (queryError) throw queryError;
       if (!data) return;
 
-      const fresh = toPost(data as unknown as PostRow, userIdRef.current);
+      const fresh = readPost(data as unknown as PostRow, versionAtRead);
       setPosts((current) =>
         current.some((post) => post.id === postId)
           ? current.map((post) => (post.id === postId ? fresh : post))
           : [fresh, ...current],
       );
     },
-    [ensureAnonymousSession, requireClient],
+    [ensureAnonymousSession, readPost, requireClient],
   );
 
   const value = useMemo(

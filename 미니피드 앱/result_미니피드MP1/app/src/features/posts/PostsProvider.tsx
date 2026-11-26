@@ -1,6 +1,6 @@
 // 게시글 목록을 앱 전체에서 같이 쓰는 저장소.
 // 글쓰기 화면에서 addPost 를 부르면 피드 화면의 목록 맨 앞에 바로 추가돼요.
-// (지금은 앱 메모리에만 저장돼서, 앱을 완전히 껐다 켜면 예시 글 4개로 돌아갑니다.)
+// 앱을 완전히 껐다 켜면 메모리에 추가한 글은 사라지고 초기 예시 글만 남아요.
 import { createContext, PropsWithChildren, useCallback, useContext, useMemo, useState } from 'react';
 
 import { SEED_POSTS } from './seed';
