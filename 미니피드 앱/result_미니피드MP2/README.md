@@ -4,7 +4,14 @@ MP1에서 만든 React Native 피드 앱에 Supabase 서버 저장과 익명 인
 
 ## 선택한 BaaS와 이유
 
-**Supabase**를 선택했습니다.
+| 항목 | 선택 |
+|---|---|
+| **BaaS** | **Supabase** (Firebase는 사용하지 않음) |
+| 데이터베이스 | Supabase Postgres (`posts` 테이블) |
+| 사용자 식별 | Supabase Auth 익명 로그인 (Anonymous Sign-Ins) 만 사용 |
+| 클라이언트 SDK | `@supabase/supabase-js` |
+
+선택 이유:
 
 - PostgreSQL 테이블에서 게시글 데이터를 직접 확인할 수 있습니다.
 - Auth의 익명 로그인을 사용해 이메일·전화번호를 수집하지 않고 기기별 사용자를 구분할 수 있습니다.
@@ -34,28 +41,36 @@ MP1에서 만든 React Native 피드 앱에 Supabase 서버 저장과 익명 인
 | 작성 실패 안내 | 저장 실패 시 글쓰기 화면에 오류 문구 표시 |
 | 중복 제출 방지 | 저장 중 게시 버튼 비활성화 및 로딩 표시 |
 
-## Supabase 설정 절차
+## 백엔드(Supabase) 설정 절차
+
+백엔드는 **Supabase** 하나만 사용하며, 아래 4단계를 순서대로 진행하면 앱이 서버와 연결됩니다.
 
 ### 1. 프로젝트 생성
 
-Supabase Dashboard에서 새 프로젝트를 생성합니다.
+1. [supabase.com](https://supabase.com)에 가입하고 **New project**로 프로젝트를 만듭니다.
+2. 프로젝트가 준비되면 **Project Settings → API**에서 아래 두 값을 확인해 둡니다 (4단계에서 사용).
+   - **Project URL** (`https://프로젝트주소.supabase.co`)
+   - **Publishable key** (클라이언트용 키. `service_role`/Secret key는 사용하지 않음)
 
 ### 2. 익명 로그인 활성화
 
-Supabase Dashboard에서 **Authentication → Providers → Anonymous Sign-Ins**를 활성화합니다.
+Supabase Dashboard에서 **Authentication → Sign In / Providers → Anonymous Sign-Ins**를 켭니다. 켜지 않으면 앱 시작 시 `signInAnonymously()`가 실패해 피드가 열리지 않습니다.
 
 ### 3. 테이블과 RLS 생성
 
-Supabase의 **SQL Editor**에서 `supabase/schema.sql`의 전체 내용을 실행합니다. 다음 항목이 생성됩니다.
+**SQL Editor**에서 `supabase/schema.sql`의 전체 내용을 실행합니다. 다음 항목이 생성됩니다.
 
-- `public.posts` 테이블
-- 작성 시간 정렬용 인덱스
-- 익명 인증 사용자 조회 정책
-- 본인 UUID로만 작성할 수 있는 INSERT 정책
+- `public.posts` 테이블 (`id`, `author_id`, `content`, `created_at`)
+- 작성 시간 정렬용 인덱스 `posts_created_at_idx`
+- Row Level Security 활성화
+- 익명 인증 사용자만 조회할 수 있는 SELECT 정책
+- 본인 UUID(`author_id = auth.uid()`)로만 작성할 수 있는 INSERT 정책
+
+실행 후 **Table Editor**에 `posts` 테이블이 보이면 성공입니다.
 
 ### 4. 환경변수 입력
 
-프로젝트 루트의 `.env.example`을 `app/.env`로 복사한 뒤 값을 입력합니다.
+프로젝트 루트의 `.env.example`을 `app/.env`로 복사한 뒤 1단계에서 확인한 값을 입력합니다.
 
 ```bash
 cp .env.example app/.env
